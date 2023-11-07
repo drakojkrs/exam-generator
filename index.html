@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Generador de Exámenes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            font-size: 28px;
+            background-color: #28a532;
+            color: #ecf0f1;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h3 {
+            font-size: 24px;
+            color: #3498db;
+        }
+
+        .question {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-size: 16px;
+            color: #ecf0f1;
+        }
+
+        input[type="text"],
+        textarea {
+            background-color: #34495e;
+            color: #ecf0f1;
+            border: 1px solid #3498db;
+            padding: 10px;
+            margin-right: 10px;
+            width: 600px;
+        }
+
+        .option-label {
+            display: block;
+            margin-top: 5px;
+        }
+
+        #exam-form {
+            padding: 20px;
+        }
+
+        #questions-container {
+            background-color: #34495e;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #28a532;
+            color: #ecf0f1;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #2bc037;
+        }
+
+        .button1 {
+            background-color: #3498db;
+            color: #ecf0f1;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .button1:hover {
+            background-color: #2879af;
+        }
+
+        .button2 {
+            background-color: #afa628;
+            color: #ecf0f1;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .button2:hover {
+            background-color: #d8db34e3;
+        }
+
+        /* Marca de agua */
+        .watermark {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.1;
+            z-index: -1;
+            transform: rotate(-45deg);
+            transform-origin: 50% 50%;
+            font-size: 100px;
+            color: #e74c3c;
+            text-align: center;
+            line-height: 100vh;
+        }
+
+        #grado{
+            width: 150px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Generador de Exámenes</h1>
+
+    <form id="exam-form">
+        <h3 id="institutionName">INSTITUCIÓN EDUCATIVA SUCRE</h3>
+        <label for="titulo">Escribe el título del examen</label>
+        <input type="text" id="titulo" value="Evaluación de Prueba">
+        <label for="grado">Escribe el grado</label>
+        <input type="text" id="grado">
+        <div id="questions-container">
+            <!-- Aquí se agregarán las preguntas dinámicamente -->
+        </div>
+
+        <button type="button" class="button1" onclick="addQuestion()">Agregar Pregunta</button>
+        <button type="button" class="button1" onclick="addText()">Agregar Texto</button>
+        <br>
+        <br>
+        <button type="button" class="button2" onclick="shuffleQuestionsAndAnswers()">Mezclar</button>
+        <button type="button" class="button2" onclick="shuffleAnswers()">Mezclar Respuestas</button>
+        <br>
+        <br>
+        <button type="button" onclick="generatePDF()">Generar Examen</button>
+        <button type="button" onclick="generateAnswersPDF()">Generar Respuestas</button>
+    </form>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.3.4/jspdf.min.js"></script>
+
+    <script>
+        let questionCount = 0;
+        let institutionName = "Institución Educativa Sucre".toUpperCase();
+        let random = false;
+
+        function addQuestion(clickButton) {
+            if (!clickButton) {
+                questionCount++;
+            }
+            const questionsContainer = document.getElementById('questions-container');
+
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'question';
+            questionDiv.innerHTML = `
+                <label for="question${questionCount}">Pregunta ${questionCount}:</label>
+                <input type="text" name="question${questionCount}"  required value="">
+                <br>
+                <label for="answerA${questionCount}">a)</label>
+                <input type="text" name="answerA${questionCount}" id="A" required value="">
+                <input type="radio" name="correctAnswer${questionCount}" value="A" checked>
+                <br>
+                <label for="answerB${questionCount}">b)</label>
+                <input type="text" name="answerB${questionCount}" id="B" required value="">
+                <input type="radio" name="correctAnswer${questionCount}" value="B">
+                <br>
+                <label for="answerC${questionCount}">c)</label>
+                <input type="text" name="answerC${questionCount}" id="C" required value="">
+                <input type="radio" name="correctAnswer${questionCount}" value="C">
+                <br>
+                <label for="answerD${questionCount}">d)</label>
+                <input type="text" name="answerD${questionCount}" id="D" required value="">
+                <input type="radio" name="correctAnswer${questionCount}" value="D">
+            `;
+
+            questionsContainer.appendChild(questionDiv);
+        }
+
+        /* for (let i = 0; i < 4; i++) {
+            addQuestion();
+        } */
+
+        function addText() {
+            questionCount++;
+            const questionsContainer = document.getElementById('questions-container');
+
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'question';
+            questionDiv.innerHTML = `
+                <label for="text${questionCount}">Coloca aquí el texto:</label>
+                <br>
+                <textarea name="text${questionCount}" id="text${questionCount}" cols="80" rows="10"></textarea>
+            `;
+
+            questionsContainer.appendChild(questionDiv);
+            addQuestion(true);
+        }
+
+        function generatePDF() {
+            let evaluationTitle = document.getElementById('titulo').value.toUpperCase();
+            let grade = "GRADO " + document.getElementById('grado').value + " J.T.";
+            let margin = 15;
+
+            const doc = new jsPDF('p', 'pt', 'letter');
+            //const doc = new jsPDF('p', 'pt', 'folio');
+
+            const pageHeight = doc.internal.pageSize.height;
+            const pageWidth = doc.internal.pageSize.width;
+            const centerX = pageWidth / 2;
+
+            doc.setFontSize(10);
+            doc.setFontStyle("bold");
+            doc.text(institutionName, centerX, 20, 'center');
+            doc.setFontSize(10);
+            doc.text(`${evaluationTitle}. ${grade}`, centerX, 35, 'center');
+            doc.setFontStyle("normal");
+
+            doc.setFontSize(30);
+            doc.setTextColor(230, 231, 232);
+            const watermarkText = "PROFESOR HENRY VILLARREAL";
+            const textWidth = doc.getStringUnitWidth(watermarkText) * 30;
+            const textHeight = 30;
+            doc.text(watermarkText, pageWidth / 2 - textWidth / 2, pageHeight / 2 - textHeight / 2);
+
+            doc.setFontSize(8);
+            doc.setTextColor(0, 0, 0);
+
+            if (!this.random) {
+                this.getQuestions();
+            }
+
+            const columnWidth = pageWidth - 2 * margin;
+            const x1 = margin;
+            const x2 = pageWidth / 2;
+            let y = 50;
+
+            questions.forEach((question, index) => {
+                if (question.text) {
+                    const textLines = doc.splitTextToSize(question.text, columnWidth);
+                    doc.text(textLines, x1, y);
+                    y += textLines.length * 10;
+                }
+                const p = doc.splitTextToSize(question.question, columnWidth);
+                doc.setFontStyle("bold");
+                doc.text(`${index + 1}.`, x1, y);
+                doc.text(p, x1 + 10, y);
+                doc.setFontStyle("normal");
+                y += p.length > 2 ? p.length * 7 : (p.length > 1 ? p.length * 5 : p.length);
+
+                const a = doc.splitTextToSize(question.answerA, (x2 / 2) + (x2 / 2));
+                const b = doc.splitTextToSize(question.answerB, (x2 / 2) + (x2 / 2));
+                const c = doc.splitTextToSize(question.answerC, (x2 / 2) + (x2 / 2));
+                const d = doc.splitTextToSize(question.answerD, (x2 / 2) + (x2 / 2));
+
+                doc.text(`a).`, x1, y + 12);
+                doc.text(`c).`, x2, y + 12);
+                doc.text(a, x1 + 10, y + 12);
+                doc.text(c, x2 + 10, y + 12);
+
+                y += Math.max(a.length, c.length) * 5;
+
+                doc.text(`b).`, x1, y + 20);
+                doc.text(`d).`, x2, y + 20);
+                doc.text(b, x1 + 10, y + 20);
+                doc.text(d, x2 + 10, y + 20);
+
+                y += Math.max(b.length, d.length) * 5;
+
+                y += 30;
+
+                if (y + margin > pageHeight) {
+                    doc.addPage();
+                    doc.setFontSize(30);
+                    doc.setTextColor(230, 231, 232);
+                    doc.text(watermarkText, pageWidth / 2 - textWidth / 2, pageHeight / 2 - textHeight / 2);
+                    y = 50;
+                    doc.setFontSize(8);
+                    doc.setTextColor(0, 0, 0);
+                }
+            });
+
+            const fecha = new Date();
+            const fechaFormatoDeseado = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+            doc.save(fechaFormatoDeseado + '_' + evaluationTitle + '_' + grade + '.pdf');
+            questions = [];
+            this.random = false;
+        }
+
+
+        function generateAnswersPDF() {
+            let evaluationTitle = document.getElementById('titulo').value.toUpperCase();
+            let grade = "GRADO " + document.getElementById('grado').value;
+            const doc = new jsPDF();
+            let answers = [];
+
+            const correctAnswers1 = document.querySelectorAll(`input[name^="correctAnswer"]:checked`);
+
+            for (let i = 0; i < correctAnswers1.length; i++) {
+                const questionNumber = i + 1;
+                const correctAnswerLabel = correctAnswers1[i].value;
+                answers.push(`Pregunta ${questionNumber}: Respuesta Correcta - ${correctAnswerLabel}`);
+            }
+
+            if (answers.length > 0) {
+                doc.setFontSize(12);
+                doc.text("Respuestas Correctas", 10, 10);
+                doc.setFontSize(10);
+                doc.text(answers, 10, 20);
+
+                const fecha = new Date();
+                const fechaFormatoDeseado = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+                doc.save('RESPUESTAS_'+fechaFormatoDeseado + '_' + evaluationTitle + '_' + grade + '.pdf');
+            } else {
+                alert("No se han seleccionado respuestas correctas.");
+            }
+        }
+
+        // Función para mezclar preguntas y respuestas
+        function shuffleQuestionsAndAnswers() {
+            const questionsContainer = document.getElementById('questions-container');
+            const questions = Array.from(questionsContainer.querySelectorAll('.question'));
+            const correctAnswers = [];
+
+            /* // Guardar las respuestas correctas antes de la mezcla
+            questions.forEach((question, index) => {
+                const correctAnswerInput = question.querySelector(`input[name="correctAnswer${index + 1}"]`);
+                correctAnswers.push(correctAnswerInput.value);
+            }); */
+
+            // Mezclar el orden de las preguntas sin cambiar los números
+            let shuffledQuestions = shuffleArray(questions);
+
+            // Limpiar el contenedor actual
+            questionsContainer.innerHTML = '';
+
+            let newAnswers = [];
+            // Agregar las preguntas mezcladas nuevamente sin cambiar los números
+            shuffledQuestions.forEach((question, index) => {
+                const originalNumber = index + 1;
+                const newQuestion = question.cloneNode(true);
+                /* newQuestion.querySelector(`label[for^="question"]`).textContent = `Pregunta ${originalNumber}:`;
+                newQuestion.querySelector(`input[name^="question"]`).name = `question${originalNumber}`;
+                newQuestion.querySelector(`label[for^="answerA"]`).textContent = `a)`;
+                newQuestion.querySelector(`input[name^="answerA"]`).name = `answerA${originalNumber}`;
+                newQuestion.querySelector(`label[for^="answerB"]`).textContent = `b)`;
+                newQuestion.querySelector(`input[name^="answerB"]`).name = `answerB${originalNumber}`;
+                newQuestion.querySelector(`label[for^="answerC"]`).textContent = `c)`;
+                newQuestion.querySelector(`input[name^="answerC"]`).name = `answerC${originalNumber}`;
+                newQuestion.querySelector(`label[for^="answerD"]`).textContent = `d)`;
+                newQuestion.querySelector(`input[name^="answerD"]`).name = `answerD${originalNumber}`; */
+                //newQuestion.querySelector(`input[name^="correctAnswer"]`).name = `correctAnswer${originalNumber}`; //esta es la linea que esta mal y hay que comprobar el numero con el cual inicia
+                questionsContainer.appendChild(newQuestion);
+            });
+
+            const radioButtons = document.querySelectorAll('input[name^="correctAnswer"]');
+
+            let valorSeleccionado = null;
+
+            // Recorre todos los radio buttons y encuentra el seleccionado
+            for (const radioButton of radioButtons) {
+                if (radioButton.checked) {
+                    valorSeleccionado = radioButton.value;
+                    correctAnswers.push(valorSeleccionado);
+                    //break;  // Sale del bucle si se encuentra uno seleccionado
+                }
+            }
+            console.log(correctAnswers);
+
+            //let vAnswer = newQuestion.querySelector(`input[name^="answer"]`);
+
+            // Restaurar las respuestas correctas
+            /* questions.forEach((question, index) => {
+                const correctAnswerInput = question.querySelector(`input[name="correctAnswer${index + 1}"]`);
+                correctAnswerInput.value = correctAnswers[index];
+            }); */
+
+            // Actualizar el contador de preguntas
+            questionCount = shuffledQuestions.length;
+        }
+
+
+        // Función para mezclar aleatoriamente un array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function getQuestions() {
+            this.random = true;
+            questions = [];
+            for (let i = 1; i <= questionCount; i++) {
+                let texto = null;
+                if (document.querySelector(`textarea#text${i}`)) {
+                    texto = document.querySelector(`textarea#text${i}`).value;
+                }
+                const question = {
+                    text: texto,
+                    question: document.querySelector(`input[name="question${i}"]`).value,
+                    answerA: document.querySelector(`input[name="answerA${i}"]`).value,
+                    answerB: document.querySelector(`input[name="answerB${i}"]`).value,
+                    answerC: document.querySelector(`input[name="answerC${i}"]`).value,
+                    answerD: document.querySelector(`input[name="answerD${i}"]`).value,
+                    correctAnswer: document.querySelector(`input[name="correctAnswer${i}"]:checked`) ? document.querySelector(`input[name="correctAnswer${i}"]:checked`).value : ""
+                };
+                questions.push(question);
+            }
+        }
+
+        function shuffleAnswers() {
+            const questionsContainer = document.getElementById('questions-container');
+            const questions = Array.from(questionsContainer.querySelectorAll('.question'));
+
+            questions.forEach((question, index) => {
+                // Filtrar los campos de respuesta por nombre
+                const answerInputs = Array.from(question.querySelectorAll('input[type="text"]')).filter(input => input.name.startsWith(`answer`));
+                // Obtener el campo de respuesta correcta
+                const correctAnswerInput = question.querySelector(`input[name="correctAnswer${index + 1}"]`);
+
+                // Recoge las respuestas originales
+                const originalAnswers = answerInputs.map(input => input.value);
+
+
+
+                // Obtén todos los elementos de radio con el nombre "answer"
+                const radioButtons = document.getElementsByName("correctAnswer" + (index + 1));
+
+                let valorSeleccionado = null;
+
+                // Recorre todos los radio buttons y encuentra el seleccionado
+                for (const radioButton of radioButtons) {
+                    if (radioButton.checked) {
+                        valorSeleccionado = radioButton.value;
+                        break;  // Sale del bucle si se encuentra uno seleccionado
+                    }
+                }
+
+                let valueAnswer = document.getElementsByName('answer' + valorSeleccionado + (index + 1))[0].value;
+
+                // Mezcla aleatoriamente las respuestas sin cambiar los índices
+                const shuffledAnswers = shuffleArray(originalAnswers);
+
+                // Actualizar los campos de respuesta con las respuestas mezcladas
+                answerInputs.forEach((answer, answerIndex) => {
+                    answer.value = shuffledAnswers[answerIndex];
+                });
+
+                let respuestas = question.querySelectorAll('[name^="answer"]');
+
+                const radiosTemp = document.getElementsByName("correctAnswer" + (index + 1));
+                for (const i of respuestas) {
+                    if (i.value === valueAnswer) {
+                        radiosTemp.forEach(element => {
+                            if (element.value === i.id) {
+                                element.checked = true;
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+    </script>
+</body>
+
+</html>
